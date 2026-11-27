@@ -662,6 +662,10 @@ export class EchoSectorEngine {
     isRemoteHuman: boolean;
   }): OperatorEntity {
     const spec = OPERATORS[opts.classId];
+    // Solo player gets a small survivability and magazine boost; bots stay unchanged.
+    const playerHp = Math.round(spec.maxHp * (opts.isLocalPlayer ? 1.18 : 1));
+    const playerArmor = Math.round(spec.maxArmor * (opts.isLocalPlayer ? 1.22 : 1));
+    const playerMagSize = Math.ceil(spec.weapon.magSize * (opts.isLocalPlayer ? 1.25 : 1));
     return {
       id: opts.id,
       name: opts.name,
@@ -678,12 +682,12 @@ export class EchoSectorEngine {
       angle: Math.atan2(ARENA_HEIGHT / 2 - opts.y, ARENA_WIDTH / 2 - opts.x),
       targetAngle: 0,
       radius: 17,
-      hp: spec.maxHp,
-      maxHp: spec.maxHp,
-      armor: spec.maxArmor,
-      maxArmor: spec.maxArmor,
-      ammo: spec.weapon.magSize,
-      magSize: spec.weapon.magSize,
+      hp: playerHp,
+      maxHp: playerHp,
+      armor: playerArmor,
+      maxArmor: playerArmor,
+      ammo: playerMagSize,
+      magSize: playerMagSize,
       reloadingUntil: 0,
       nextFireAt: 0,
       alive: true,
@@ -1316,13 +1320,13 @@ export class EchoSectorEngine {
       // Fire when reasonably aimed at target
       const aimErr = Math.abs(normalizeAngle(toEnemyAngle - bot.angle));
       if (
-        aimErr < 0.24 &&
+        aimErr < 0.17 &&
         bestEnemyDist <= spec.weapon.bulletRange &&
         now >= bot.nextFireAt &&
         bot.reloadingUntil === 0
       ) {
         // Human-like slight spread so bots feel fun & beatable
-        const botSpread = (Math.random() - 0.5) * 0.1;
+        const botSpread = (Math.random() - 0.5) * 0.16;
         this.fireWeapon(bot, bot.angle + botSpread, now);
       }
     } else if (bot.aiInvestigate && now < bot.aiInvestigate.until) {
@@ -1493,7 +1497,9 @@ export class EchoSectorEngine {
     const w = spec.weapon;
     const overdrive =
       shooter.classId === "ghost" && now < shooter.abilityActiveUntil;
-    const fireInterval = overdrive ? w.fireRateMs * 0.56 : w.fireRateMs;
+    const baseInterval = overdrive ? w.fireRateMs * 0.56 : w.fireRateMs;
+    // Player weapons feel more responsive; AI opponents fire less often.
+    const fireInterval = baseInterval * (shooter.isLocalPlayer ? 0.72 : 1.28);
 
     shooter.nextFireAt = now + fireInterval;
     shooter.ammo = Math.max(0, shooter.ammo - 1);
@@ -1527,7 +1533,7 @@ export class EchoSectorEngine {
         mx,
         my,
         shotAngle,
-        Math.round(w.damage * dmgBoost),
+        Math.round(w.damage * dmgBoost * (shooter.isLocalPlayer ? 1 : 0.78)),
         skin.tracerColor
       );
     }
