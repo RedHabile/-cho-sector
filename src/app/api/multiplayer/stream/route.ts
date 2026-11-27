@@ -36,7 +36,7 @@ export async function GET(request: Request) {
         if (closed) return;
         try {
           controller.enqueue(
-            encoder.encode(\`data: \${JSON.stringify(event)}\n\n\`)
+            encoder.encode("data: " + JSON.stringify(event) + "\n\n")
           );
         } catch {
           close();
