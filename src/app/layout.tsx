@@ -6,18 +6,18 @@ import "./globals.css";
 const chakraPetch = Chakra_Petch({
   subsets: ["latin"],
   weight: ["600", "700"],
-  variable: "--font-display",
+  variable: "--font-chakra-petch",
 });
 
 const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-sans",
+  variable: "--font-inter",
 });
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   weight: ["400", "600", "700", "800"],
-  variable: "--font-mono",
+  variable: "--font-jetbrains-mono",
 });
 
 export const metadata: Metadata = {
