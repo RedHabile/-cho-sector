@@ -19,28 +19,38 @@ export async function GET(request: Request) {
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
-      const send = (event: unknown) => {
-        if (closed) return;
-        try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\\n\\n`));
-        } catch {
-          close();
-        }
-      };
-
       const close = () => {
         if (closed) return;
         closed = true;
         if (heartbeat) clearInterval(heartbeat);
         unsubscribe();
         request.signal.removeEventListener("abort", close);
-        try { controller.close(); } catch { /* already closed */ }
+        try {
+          controller.close();
+        } catch {
+          // The stream may already be closed by the client.
+        }
+      };
+
+      const send = (event: unknown) => {
+        if (closed) return;
+        try {
+          controller.enqueue(
+            encoder.encode(\`data: \${JSON.stringify(event)}\n\n\`)
+          );
+        } catch {
+          close();
+        }
       };
 
       unsubscribe = multiplayerHub.subscribe(roomCode, playerId, send);
       heartbeat = setInterval(() => {
         if (!closed) {
-          try { controller.enqueue(encoder.encode(": keep-alive\\n\\n")); } catch { close(); }
+          try {
+            controller.enqueue(encoder.encode(": keep-alive\n\n"));
+          } catch {
+            close();
+          }
         }
       }, 15000);
       request.signal.addEventListener("abort", close, { once: true });
