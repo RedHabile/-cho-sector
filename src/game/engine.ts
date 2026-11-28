@@ -509,7 +509,7 @@ export class EchoSectorEngine {
       if (botIdx === 0) {
         const nearCandidate = spawns.find((cand) => {
           const d = Math.hypot(cand.x - playerSpawn.x, cand.y - playerSpawn.y);
-          return d >= 440 && d <= 720;
+          return d >= 560 && d <= 820;
         });
         if (nearCandidate) sp = nearCandidate;
       }
@@ -662,10 +662,19 @@ export class EchoSectorEngine {
     isRemoteHuman: boolean;
   }): OperatorEntity {
     const spec = OPERATORS[opts.classId];
-    // Solo player gets a small survivability and magazine boost; bots stay unchanged.
-    const playerHp = Math.round(spec.maxHp * (opts.isLocalPlayer ? 1.18 : 1));
-    const playerArmor = Math.round(spec.maxArmor * (opts.isLocalPlayer ? 1.22 : 1));
-    const playerMagSize = Math.ceil(spec.weapon.magSize * (opts.isLocalPlayer ? 1.25 : 1));
+    // Solo receives a stronger safety net; multiplayer keeps its existing balance.
+    const playerHpMultiplier = opts.isLocalPlayer
+      ? this.mode === "solo" ? 1.42 : 1.18
+      : 1;
+    const playerArmorMultiplier = opts.isLocalPlayer
+      ? this.mode === "solo" ? 1.5 : 1.22
+      : 1;
+    const playerMagazineMultiplier = opts.isLocalPlayer
+      ? this.mode === "solo" ? 1.4 : 1.25
+      : 1;
+    const playerHp = Math.round(spec.maxHp * playerHpMultiplier);
+    const playerArmor = Math.round(spec.maxArmor * playerArmorMultiplier);
+    const playerMagSize = Math.ceil(spec.weapon.magSize * playerMagazineMultiplier);
     return {
       id: opts.id,
       name: opts.name,
@@ -1229,7 +1238,7 @@ export class EchoSectorEngine {
           bot.y,
           bot.angle,
           spec.visionHalfAngle * 1.15,
-          spec.visionRange * 0.94,
+          spec.visionRange * 0.78,
           105,
           other.x,
           other.y,
@@ -1256,7 +1265,7 @@ export class EchoSectorEngine {
         const r = this.ripples[i];
         if (r.ownerId === bot.id) continue;
         const d = Math.hypot(r.x - bot.x, r.y - bot.y);
-        if (d < spec.hearingRange * 0.85 && r.alpha > 0.35) {
+        if (d < spec.hearingRange * 0.62 && r.alpha > 0.35) {
           bot.aiInvestigate = { x: r.x, y: r.y, until: now + 3800 };
           break;
         }
@@ -1310,23 +1319,23 @@ export class EchoSectorEngine {
       desiredY =
         bot.y +
         (Math.sin(toEnemyAngle) * radialPush + Math.sin(strafeAng) * 0.72) * 140;
-      moveFactor = 0.88;
+      moveFactor = 0.78;
 
       // Trigger bot tactical ability smartly in combat
-      if (now >= bot.abilityReadyAt && (bot.hp < bot.maxHp * 0.75 || bestEnemyDist < 280)) {
+      if (now >= bot.abilityReadyAt && (bot.hp < bot.maxHp * 0.58 || bestEnemyDist < 230)) {
         this.activateOperatorAbility(bot, now, false);
       }
 
       // Fire when reasonably aimed at target
       const aimErr = Math.abs(normalizeAngle(toEnemyAngle - bot.angle));
       if (
-        aimErr < 0.17 &&
+        aimErr < 0.25 &&
         bestEnemyDist <= spec.weapon.bulletRange &&
         now >= bot.nextFireAt &&
         bot.reloadingUntil === 0
       ) {
         // Human-like slight spread so bots feel fun & beatable
-        const botSpread = (Math.random() - 0.5) * 0.16;
+        const botSpread = (Math.random() - 0.5) * 0.30;
         this.fireWeapon(bot, bot.angle + botSpread, now);
       }
     } else if (bot.aiInvestigate && now < bot.aiInvestigate.until) {
@@ -1433,7 +1442,7 @@ export class EchoSectorEngine {
       bot.vy = 0;
     }
 
-    bot.angle = lerpAngle(bot.angle, desiredAngle, Math.min(1, dt * 8.5));
+    bot.angle = lerpAngle(bot.angle, desiredAngle, Math.min(1, dt * 5.4));
   }
 
   private moveOperatorWithCollision(op: OperatorEntity, dx: number, dy: number) {
@@ -1499,7 +1508,7 @@ export class EchoSectorEngine {
       shooter.classId === "ghost" && now < shooter.abilityActiveUntil;
     const baseInterval = overdrive ? w.fireRateMs * 0.56 : w.fireRateMs;
     // Player weapons feel more responsive; AI opponents fire less often.
-    const fireInterval = baseInterval * (shooter.isLocalPlayer ? 0.72 : 1.28);
+    const fireInterval = baseInterval * (shooter.isLocalPlayer ? 0.72 : 1.65);
 
     shooter.nextFireAt = now + fireInterval;
     shooter.ammo = Math.max(0, shooter.ammo - 1);
@@ -1533,7 +1542,7 @@ export class EchoSectorEngine {
         mx,
         my,
         shotAngle,
-        Math.round(w.damage * dmgBoost * (shooter.isLocalPlayer ? 1 : 0.78)),
+        Math.round(w.damage * dmgBoost * (shooter.isLocalPlayer ? 1 : 0.58)),
         skin.tracerColor
       );
     }
