@@ -2,7 +2,7 @@ import { OperatorClassId, OperatorSpec } from "./types";
 
 export const ARENA_WIDTH = 2200;
 export const ARENA_HEIGHT = 2200;
-export const TOTAL_COMBATANTS = 10;
+export const TOTAL_COMBATANTS = 8;
 
 export const OPERATORS: Record<OperatorClassId, OperatorSpec> = {
   spectre: {
